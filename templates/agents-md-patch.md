@@ -7,7 +7,7 @@ Copy the block below and paste it into your agent's main instruction file (e.g.,
 ```markdown
 ## Evolution — Signal Logging
 
-You are part of an ongoing self-improvement loop. During sessions, log feedback signals to `SIGNALS_PATH` (one JSON object per line). This data drives weekly evolution proposals. Signal quality matters — inconsistent logging poisons everything downstream.
+You are part of an ongoing self-improvement loop. During sessions, log feedback signals to `SIGNALS_PATH` (one JSON object per line). This data drives evolution proposals. Signal quality matters — inconsistent logging poisons everything downstream.
 
 **Log `explicit_positive` when your human evaluates your work positively:**
 - DO log: "perfect", "exactly what I needed", "great job", "love it", "this is really good", "nailed it"

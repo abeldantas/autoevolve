@@ -67,7 +67,7 @@ date	commit	file	type	description	pre_score	post_score	status
 
 - **Manual phase:** Human triggers cycles whenever they want (recommended: weekly)
 - **Automated phase:** Cron job runs weekly (e.g., Sunday 10:00 UTC)
-- **Why weekly:** Agent quality manifests over days, not minutes. A 7-day window provides enough signal density for meaningful evaluation while keeping the feedback loop tight enough to iterate.
+- **Why days, not minutes:** Agent quality manifests over days, not minutes. The default 3-day evaluation window (configurable via `eval_window_days`) balances signal density with feedback loop speed. Shorter windows catch issues faster; longer windows reduce noise.
 
 ## What happens when there's not enough data
 

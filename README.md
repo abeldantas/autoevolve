@@ -4,7 +4,7 @@
 
 Your AI agents watch how humans react to them, propose mutations to their own behavior files, keep what works, and revert what doesn't. Over time, they evolve.
 
-The idea: take the evolutionary loop from [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) — where an AI agent autonomously mutates training code, runs experiments, and keeps improvements — and apply it to **agent behavior files** instead. In autoresearch, the agent optimizes `train.py` and measures `val_bpb`. Here, the agent optimizes its own personality and instruction files (`AGENTS.md`, `SOUL.md`, etc.) and measures fitness through human feedback signals: Discord reactions, explicit praise or corrections, and task outcomes. A weekly evolution cycle analyzes these signals, proposes a single small mutation, and waits for your approval. If the mutation helps, it stays. If it hurts, it gets reverted. Mutate, evaluate, keep-or-discard, repeat.
+The idea: take the evolutionary loop from [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) — where an AI agent autonomously mutates training code, runs experiments, and keeps improvements — and apply it to **agent behavior files** instead. In autoresearch, the agent optimizes `train.py` and measures `val_bpb`. Here, the agent optimizes its own personality and instruction files (`AGENTS.md`, `SOUL.md`, etc.) and measures fitness through human feedback signals: Discord reactions, explicit praise or corrections, and task outcomes. Each evolution cycle analyzes these signals, rolls a D20 to pick a mutation strategy, proposes a single small mutation, and waits for your approval. If the mutation helps, it stays. If it hurts, it gets reverted. Mutate, evaluate, keep-or-discard, repeat.
 
 This framework is built for agents running on [OpenClaw](https://github.com/anthropics/openclaw) with Discord as the chat platform, [Claude Code](https://docs.anthropic.com/en/docs/claude-code) as the evolution engine, and systemd + Git for infrastructure. The concepts are general but the implementation targets this stack.
 
@@ -25,10 +25,11 @@ After installation, agent-specific runtime data (signals, experiment log, propos
 1. Agent runs normally, logging feedback signals
    (reactions, explicit praise/corrections, task outcomes)
 
-2. Weekly: Claude Code runs one evolution cycle on the agent's VM
-   - Computes a fitness score from the past 7 days of signals
+2. Claude Code runs one evolution cycle on the agent's VM
+   - Computes a fitness score from the evaluation window (default 3 days)
    - Evaluates the last mutation (improved? keep. regressed? revert.)
    - Analyzes signal patterns for improvement opportunities
+   - Rolls a D20 to pick the mutation strategy (simplify, specify, signal-driven, etc.)
    - Proposes a single, small mutation to one behavior file
 
 3. Human reviews the proposal (Discord DM) and approves or rejects
@@ -44,10 +45,10 @@ After installation, agent-specific runtime data (signals, experiment log, propos
 | `train.py` (mutation surface) | Agent's mutable files (AGENTS.md, SOUL.md, etc.) |
 | `prepare.py` (fixed ground truth) | Agent's immutable files (IDENTITY.md, USER.md) + framework |
 | `val_bpb` (fitness metric) | Composite signal: reactions + feedback + task outcomes |
-| 5-min training run | 7-day evaluation window |
+| 5-min training run | 3-day evaluation window (configurable) |
 | `results.tsv` | `local/experiments.tsv` |
 | `program.md` | `templates/PROGRAM.md` |
-| "NEVER STOP" autonomous loop | Weekly cycle, human-gated |
+| "NEVER STOP" autonomous loop | Human-gated cycle (run on your own cadence) |
 
 ## Quick start
 
@@ -58,8 +59,9 @@ After installation, agent-specific runtime data (signals, experiment log, propos
 git clone https://github.com/abeldantas/autoevolve.git /opt/autoevolve
 cd /opt/autoevolve
 
-# 2. Create local directory (gitignored — agent-specific data lives here)
+# 2. Create local directory and set up hooks (gitignored — agent-specific data lives here)
 mkdir -p local/snapshots
+git config core.hooksPath .githooks
 cp templates/config.json local/
 cp templates/experiments.tsv local/
 touch local/signals.jsonl
@@ -92,6 +94,8 @@ templates/                          # Framework (tracked, public)
   experiments.tsv                   — header-only template for experiment tracking
 services/
   reaction-listener/                — Discord reaction listener (Gateway-based, systemd)
+  d20/                              — D20 mutation strategy roller
+  health-check/                     — signal freshness and source balance checker
 docs/                               — design philosophy, signals, mutations, loop details
 local/                              # Agent-specific data (gitignored, never pushed)
   config.json                       — this agent's config (copied from template)

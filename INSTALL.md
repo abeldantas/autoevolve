@@ -156,6 +156,16 @@ tail -5 /opt/autoevolve/local/signals.jsonl
 
 To test: react to one of the agent's Discord messages with a thumbsup. You should see a new line in `signals.jsonl` and a log entry in journalctl.
 
+### Health check
+
+Run the health check script to verify both signal sources are working and data is fresh:
+
+```bash
+python3 /opt/autoevolve/services/health-check/check.py /opt/autoevolve/local/signals.jsonl
+```
+
+This reports signal counts by source and type, flags staleness, and warns if one signal source is missing (e.g., reactions exist but the agent is not self-reporting). Run it any time you suspect signal collection issues.
+
 ## Step 10: Run the first evolution cycle
 
 ```bash

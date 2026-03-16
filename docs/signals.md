@@ -73,7 +73,7 @@ Configurable in `config.json`. Defaults:
 
 ## Scoring
 
-The evolution loop computes a score over the evaluation window (default 7 days). Each signal is mapped to a weight key from `signal_weights` in config:
+The evolution loop computes a score over the evaluation window (default 3 days, configurable via `eval_window_days` in config). Each signal is mapped to a weight key from `signal_weights` in config:
 
 ```
 For each signal in window:
