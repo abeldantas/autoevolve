@@ -47,9 +47,11 @@ Check `experiments.tsv` for the most recent entry with status `pending`.
 - If pending:
   - The `pre_score` was recorded when the mutation was applied.
   - The current window score is the `post_score`.
-  - **If post_score > pre_score**: mark status as `keep`. The mutation helped.
-  - **If post_score < pre_score by more than 10%**: mark status as `revert`. Run `git revert <commit>` to undo. If signal density is low, note this in the log — the revert is less certain.
-  - **If roughly equal (within 10%)**: mark status as `neutral`. Keep the change (bias toward simplification).
+  - Compute `delta = post_score - pre_score`.
+  - Compute the revert threshold: `threshold = max(abs(pre_score) * revert_threshold_pct/100, revert_threshold_floor)` (from config; defaults: 10%, floor 2). This ensures a meaningful minimum — when pre_score is near zero, the percentage rule alone would revert on trivial noise.
+  - **If delta > 0**: mark status as `keep`. The mutation helped.
+  - **If delta < -threshold** (score dropped by more than the threshold): mark status as `revert`. Run `git revert <commit>` to undo. If signal density is low, note this in the log — the revert is less certain.
+  - **If -threshold <= delta <= 0** (small or no drop): mark status as `neutral`. Keep the change (bias toward simplification).
   - Update the row in `experiments.tsv` with the post_score and new status.
 
 ### 3. Analyze Signals

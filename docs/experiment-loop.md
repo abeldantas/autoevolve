@@ -32,15 +32,15 @@ Next cycle evaluates the result...
 
 ## Evaluation rules
 
-When evaluating a pending mutation:
+When evaluating a pending mutation, compute `delta = post_score - pre_score` and `threshold = max(abs(pre_score) * 0.10, 2)`:
 
 | Condition | Decision | Action |
 |---|---|---|
-| post_score > pre_score | `keep` | Commit stays, advance |
-| post_score < pre_score by >10% | `revert` | `git revert <commit>`, undo |
-| Within 10% (roughly equal) | `neutral` | Keep the change (bias toward simplicity) |
+| delta > 0 | `keep` | Commit stays, advance |
+| delta < -threshold | `revert` | `git revert <commit>`, undo |
+| -threshold <= delta <= 0 | `neutral` | Keep the change (bias toward simplicity) |
 
-The 10% threshold exists because signals are noisy. Small fluctuations in score shouldn't trigger reverts.
+The threshold uses 10% of the absolute pre_score with a floor of 2 points. The floor prevents spurious reverts when pre_score is near zero or negative — without it, a pre_score of 0 would make any drop trigger a revert, and a pre_score of 3 would revert on a 0.3-point fluctuation. Signals are noisy; small score movements should not drive revert decisions.
 
 ## Experiment log format
 
