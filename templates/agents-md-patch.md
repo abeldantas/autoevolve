@@ -1,37 +1,44 @@
 # Signal Logging Block for AGENTS.md
 
-Copy the block below and paste it into your agent's main instruction file (e.g., `AGENTS.md`). This instructs the agent to log feedback signals during sessions for the autoevolve framework.
+Copy the block below and paste it into your agent's main instruction file (e.g., `AGENTS.md`). Replace `SIGNALS_PATH` with the actual path to the agent's signals file. This instructs the agent to log feedback signals during sessions for the autoevolve framework.
 
 ---
 
 ```markdown
 ## Evolution — Signal Logging
 
-You are part of an ongoing self-improvement loop. During sessions, log feedback signals to `local/signals.jsonl` (one JSON object per line). This data drives weekly evolution proposals.
+You are part of an ongoing self-improvement loop. During sessions, log feedback signals to `SIGNALS_PATH` (one JSON object per line). This data drives weekly evolution proposals. Signal quality matters — inconsistent logging poisons everything downstream.
 
-**When to log:**
-
-- **Explicit positive feedback** — your human says something clearly positive about your work ("great", "perfect", "exactly what I needed", "nice", "love it")
+**Log `explicit_positive` when your human evaluates your work positively:**
+- DO log: "perfect", "exactly what I needed", "great job", "love it", "this is really good", "nailed it"
+- DO NOT log: "ok", "sure", "thanks", "got it", "sounds good" — these are acknowledgments, not praise
+- DO NOT log greetings ("hey!", "good morning") or reactions to information you provided ("oh cool", "interesting")
   ```json
-  {"ts":"ISO8601","source":"self","type":"explicit_positive","text":"what they said","session":"SESSION_TYPE"}
+  {"ts":"2026-03-15T14:32:00Z","source":"self","type":"explicit_positive","text":"perfect, exactly what I needed","session":"main"}
   ```
 
-- **Explicit negative feedback / correction** — your human corrects you or expresses dissatisfaction ("no", "wrong", "I said X not Y", "stop", "that's not right")
+**Log `correction` when your human corrects a mistake you made:**
+- DO log: "no that's wrong", "I said Thursday not Tuesday", "that's not what I asked for", "you forgot X", "stop, go back"
+- DO NOT log: "actually let's do Y instead" (that's a new direction, not a correction), "never mind" (ambiguous), "hmm" (not feedback)
+- DO NOT log a correction when the human is refining their own request — only when YOU got something wrong
   ```json
-  {"ts":"ISO8601","source":"self","type":"correction","text":"what they said","session":"SESSION_TYPE"}
+  {"ts":"2026-03-15T14:35:00Z","source":"self","type":"correction","text":"no I said the meeting is Thursday not Tuesday","session":"main"}
   ```
 
-- **Task completion** — you finish a task. Note whether corrections were needed.
+**Log `task_complete` when you finish a discrete unit of work your human asked for:**
+- A "task" = something your human explicitly requested that took effort (research, writing, debugging, organizing, building). NOT answering a quick question, NOT casual chat.
+- `corrections` = how many times you were corrected during THIS task (0 = clean completion)
   ```json
-  {"ts":"ISO8601","source":"self","type":"task_complete","context":"brief description","corrections":0}
+  {"ts":"2026-03-15T15:00:00Z","source":"self","type":"task_complete","context":"drafted weekly email digest and sent it","corrections":1}
   ```
 
 **Rules:**
-- Use `exec` to append (the file is outside workspace if needed): `echo '{"ts":"..."}' >> local/signals.jsonl`
-- One line per signal. Valid JSON. ISO 8601 timestamps.
-- Don't over-log. One signal per distinct feedback moment, not per message.
-- Session type: "main", "hook", "discord", "thread" — whatever applies.
-- This logging should be lightweight. Don't let it interfere with your primary task.
+- Use `exec` to append: `echo '{"ts":"..."}' >> SIGNALS_PATH`
+- One signal per distinct feedback moment. Never double-log the same reaction.
+- **Never log in hook/background/cron sessions** — no human is present, signals would be noise.
+- Never log your own reactions to yourself or system messages.
+- Session type: "main", "discord", "thread" — whichever applies.
+- When in doubt, don't log. Under-logging a borderline case is better than polluting the signal file.
 ```
 
 ---
@@ -39,3 +46,5 @@ You are part of an ongoing self-improvement loop. During sessions, log feedback 
 ## Where to paste it
 
 Add it near the end of the agent's AGENTS.md, before any "Make It Yours" or closing section. The section should be clearly visible but not dominate the file.
+
+Before pasting, replace every instance of `SIGNALS_PATH` with the actual path for that agent (e.g., `/opt/autoevolve/local/signals.jsonl`).
