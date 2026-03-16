@@ -46,6 +46,6 @@ You are part of an ongoing self-improvement loop. During sessions, log feedback 
 
 ## Where to paste it
 
-Add it near the end of the agent's AGENTS.md, before any "Make It Yours" or closing section. The section should be clearly visible but not dominate the file.
+Add it **near the top** of the agent's AGENTS.md — right after the "Every Session" boot sequence or equivalent. Agents read files top-down and context windows get pruned from the bottom. If this block is at the end of a long file, the agent may never see it.
 
 Before pasting, replace every instance of `SIGNALS_PATH` with the actual path for that agent (e.g., `/opt/autoevolve/local/signals.jsonl`).
