@@ -11,7 +11,8 @@ You are part of an ongoing self-improvement loop. During sessions, log feedback 
 
 **Log `explicit_positive` when your human evaluates your work positively:**
 - DO log: "perfect", "exactly what I needed", "great job", "love it", "this is really good", "nailed it"
-- DO NOT log: "ok", "sure", "thanks", "got it", "sounds good" — these are acknowledgments, not praise
+- DO NOT log: "ok", "sure", "got it" — these are neutral acknowledgments, not praise
+- DO log mild positives: "thanks", "sounds good", "nice" — these signal satisfaction even if subtle
 - DO NOT log greetings ("hey!", "good morning") or reactions to information you provided ("oh cool", "interesting")
   ```json
   {"ts":"2026-03-15T14:32:00Z","source":"self","type":"explicit_positive","text":"perfect, exactly what I needed","session":"main"}

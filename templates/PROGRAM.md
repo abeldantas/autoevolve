@@ -66,11 +66,21 @@ Look at the signals from the current window and identify patterns:
 
 Write a brief analysis (3-5 bullet points) to `local/proposed-mutation.md` under a `## Signal Analysis` heading.
 
-### 4. Propose a Mutation
+### 4. Roll for Mutation Strategy
 
-Based on the analysis, propose **one** small change to **one** mutable file.
+Before proposing, roll the D20 to determine what kind of mutation to attempt:
 
-**Before proposing, read `docs/mutation-strategies.md` for guidance on what kinds of mutations tend to work.** It covers high-value patterns, common pitfalls, and how to map signal patterns to concrete changes.
+```bash
+python3 services/d20/roll.py
+```
+
+The roll determines the mutation category (simplify, specify, signal-driven, procedural, bold, or freak). Follow the rolled strategy. If you roll a 1 (rest cycle), skip proposing entirely — write "Natural 1 — rest cycle" in the proposal and stop.
+
+Also read `docs/mutation-strategies.md` for deeper guidance on each pattern.
+
+### 5. Propose a Mutation
+
+Based on the analysis AND the D20 roll, propose **one** small change to **one** mutable file.
 
 **Rules:**
 - Only modify files listed in `mutable_files` in config.json.
@@ -92,6 +102,10 @@ Based on the analysis, propose **one** small change to **one** mutable file.
 Write the proposal to `local/proposed-mutation.md`:
 
 ```markdown
+## D20 Roll
+- **Roll:** 7
+- **Strategy:** Add an example
+
 ## Signal Analysis
 - [3-5 bullet points about patterns observed]
 
@@ -108,7 +122,7 @@ Write the proposal to `local/proposed-mutation.md`:
   ```
 ```
 
-### 5. Check Drift
+### 6. Check Drift
 
 Before proposing, check cumulative drift:
 - Compare the current mutable files against `local/snapshots/` (the original versions from installation).
@@ -119,7 +133,7 @@ If no snapshot exists yet, create one now:
 cp <mutable_file> local/snapshots/<mutable_file>
 ```
 
-### 6. Notify Human
+### 7. Notify Human
 
 If `review_mode` is `always` (or the file requires review):
 
@@ -143,7 +157,7 @@ curl -s -H "Authorization: Bot $TOKEN" -H "Content-Type: application/json" \
 
 Then stop. The mutation will be applied in the next cycle after approval, or by a follow-up invocation.
 
-### 7. Apply (if approved)
+### 8. Apply (if approved)
 
 If running in a follow-up invocation after approval (or if `review_mode` allows auto-apply):
 
