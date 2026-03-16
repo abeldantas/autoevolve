@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-autoevolve health check — signal freshness and source balance.
+autoevolve health check -- signal freshness and source balance.
 
 Reads signals.jsonl and prints a health report. Exits 0 if healthy, 1 if
 there are warnings (e.g., no self-reported signals for an extended period).
@@ -17,25 +17,18 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from collections import Counter
 
-
-# ── configuration ────────────────────────────────────────────────────────────
-STALENESS_DAYS = 7          # warn if no self-reported signal in this window
-WINDOW_DAYS = 7             # "recent" window for the summary
-
+STALENESS_DAYS = 7
+WINDOW_DAYS = 7
 SELF_SOURCES = {"self"}
 EXTERNAL_SOURCES = {"discord"}
 
 
-# ── helpers ──────────────────────────────────────────────────────────────────
-
 def parse_ts(ts_str: str) -> datetime:
-    """Parse an ISO-8601 timestamp, tolerant of minor format differences."""
     ts_str = ts_str.replace("Z", "+00:00")
     return datetime.fromisoformat(ts_str)
 
 
 def load_signals(path: Path) -> list[dict]:
-    """Load all valid JSONL entries from the signals file."""
     signals = []
     with open(path) as f:
         for lineno, line in enumerate(f, 1):
@@ -49,23 +42,20 @@ def load_signals(path: Path) -> list[dict]:
     return signals
 
 
-# ── report ───────────────────────────────────────────────────────────────────
-
 def report(signals: list[dict]) -> bool:
-    """Print a health report. Returns True if healthy, False if warnings."""
     now = datetime.now(timezone.utc)
     window_start = now - timedelta(days=WINDOW_DAYS)
     warnings: list[str] = []
 
     print("autoevolve signal health check")
-    print("─" * 50)
+    print(chr(0x2500) * 50)
     print(f"Total signals:   {len(signals)}")
 
     if not signals:
-        warnings.append("Signals file is empty — no data at all.")
+        warnings.append("Signals file is empty -- no data at all.")
         print()
         for w in warnings:
-            print(f"  ⚠  {w}")
+            print(f"  WARNING: {w}")
         return False
 
     for s in signals:
@@ -75,27 +65,20 @@ def report(signals: list[dict]) -> bool:
     print(f"Signals (last {WINDOW_DAYS}d): {len(recent)}")
     print()
 
-    # breakdown by source
     source_counts = Counter(s.get("source", "unknown") for s in signals)
     source_counts_recent = Counter(s.get("source", "unknown") for s in recent)
-
     print("By source (all time / last 7d):")
-    all_sources = sorted(set(source_counts) | set(source_counts_recent))
-    for src in all_sources:
+    for src in sorted(set(source_counts) | set(source_counts_recent)):
         print(f"  {src:20s}  {source_counts[src]:>5d}  /  {source_counts_recent[src]:>5d}")
     print()
 
-    # breakdown by type
     type_counts = Counter(s.get("type", "unknown") for s in signals)
     type_counts_recent = Counter(s.get("type", "unknown") for s in recent)
-
     print("By type (all time / last 7d):")
-    all_types = sorted(set(type_counts) | set(type_counts_recent))
-    for t in all_types:
+    for t in sorted(set(type_counts) | set(type_counts_recent)):
         print(f"  {t:20s}  {type_counts[t]:>5d}  /  {type_counts_recent[t]:>5d}")
     print()
 
-    # last signal per source
     last_by_source: dict[str, datetime] = {}
     for s in signals:
         src = s.get("source", "unknown")
@@ -111,8 +94,6 @@ def report(signals: list[dict]) -> bool:
         print(f"  {src:20s}  {ts.strftime('%Y-%m-%d %H:%M UTC'):>22s}  ({age_str})")
     print()
 
-    # ── warnings ──────────────────────────────────────────────────────────
-
     last_self = None
     for src in SELF_SOURCES:
         if src in last_by_source:
@@ -121,13 +102,12 @@ def report(signals: list[dict]) -> bool:
 
     if last_self is None:
         warnings.append(
-            "No self-reported signals found at all — agent may never have "
-            "logged signals. Check that the agent's instructions include "
-            "signal logging."
+            "No self-reported signals found at all -- agent may never have "
+            "logged signals. Check that the agent instructions include signal logging."
         )
     elif (now - last_self).days >= STALENESS_DAYS:
         warnings.append(
-            f"No self-reported signals in {(now - last_self).days} days — "
+            f"No self-reported signals in {(now - last_self).days} days -- "
             f"agent may not be logging. Threshold: {STALENESS_DAYS}d."
         )
 
@@ -139,37 +119,32 @@ def report(signals: list[dict]) -> bool:
 
     if last_ext is None:
         warnings.append(
-            "No reaction signals found — check that the reaction listener "
+            "No reaction signals found -- check that the reaction listener "
             "service is running (systemctl status autoevolve-reactions)."
         )
     elif (now - last_ext).days >= STALENESS_DAYS:
         warnings.append(
-            f"No reaction signals in {(now - last_ext).days} days — "
+            f"No reaction signals in {(now - last_ext).days} days -- "
             f"check listener service."
         )
 
-    # Source imbalance
     has_recent_ext = any(s.get("source") in EXTERNAL_SOURCES for s in recent)
     has_recent_self = any(s.get("source") in SELF_SOURCES for s in recent)
-
     if has_recent_ext and not has_recent_self:
         warnings.append(
             "Reaction signals exist in the last 7 days but zero self-reported "
-            "signals — the agent is likely not following signal logging "
-            "instructions."
+            "signals -- the agent is likely not following signal logging instructions."
         )
 
     if warnings:
         print("WARNINGS:")
         for w in warnings:
-            print(f"  ⚠  {w}")
+            print(f"  WARNING: {w}")
     else:
-        print("Status: HEALTHY — all signal sources active.")
+        print("Status: HEALTHY -- all signal sources active.")
 
     return len(warnings) == 0
 
-
-# ── main ─────────────────────────────────────────────────────────────────────
 
 def main():
     if len(sys.argv) > 1:
