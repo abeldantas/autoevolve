@@ -8,6 +8,7 @@
   "no_evolve_sections": ["Safety", "Security Posture"],
 
   "eval_window_days": 7,
+  "min_signal_count": 10,
   "mutation_size_limit_lines": 20,
   "drift_threshold_percent": 50,
 
