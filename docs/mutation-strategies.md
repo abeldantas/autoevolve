@@ -43,6 +43,35 @@ Use these mappings to go from "what the signals say" to "what to change":
 | Contradictory signals (positive and negative for same behavior) | The rule is ambiguous — clarify with examples of when to apply vs. when not to |
 | `explicit_negative` followed by `explicit_positive` on same topic | The agent self-corrected — add a rule to get it right the first time |
 
+## D20 Mutation Table
+
+Each evolution cycle rolls a D20 (`services/d20/roll.py`) to determine the mutation strategy. This adds controlled randomness — most rolls produce safe, incremental changes, but occasionally you get something bold.
+
+| Roll | Category | Strategy | Description |
+|---|---|---|---|
+| 1 | skip | Natural 1 — Rest cycle | No mutation this cycle. Sometimes the best change is no change. |
+| 2 | simplify | Remove dead weight | Find and remove an instruction the agent likely ignores. |
+| 3 | simplify | Consolidate scattered rules | Merge related instructions from different sections into one block. |
+| 4 | simplify | Kill redundancy | Find two rules that say the same thing. Delete one. |
+| 5 | simplify | Shorten a verbose rule | Rewrite the longest instruction in half the lines. |
+| 6 | specify | Vague to specific | Replace an adjective-based rule with concrete criteria. |
+| 7 | specify | Add an example | Add a concrete example of correct behavior to an existing rule. |
+| 8 | specify | Add a counter-example | Add a "DO NOT" case showing what wrong behavior looks like. |
+| 9 | specify | Sharpen a conditional | Make an ambiguous if/when trigger condition explicit. |
+| 10 | specify | Quantify a threshold | Replace "too many", "too long", "a lot" with a number. |
+| 11 | signal-driven | Fix a correction pattern | Find the most common correction topic and add a prevention rule. |
+| 12 | signal-driven | Reinforce a positive | Identify praised behavior and document it as an explicit rule. |
+| 13 | signal-driven | Clarify a confusion zone | Rewrite the instruction for areas with repeated corrected completions. |
+| 14 | signal-driven | Resolve a contradiction | Clarify a rule that gets both positive and negative signals. |
+| 15 | procedural | Optimize a workflow | Eliminate or reorder a step in a multi-step procedure. |
+| 16 | procedural | Add a checklist | Add a short checklist for a complex repeated task. |
+| 17 | procedural | Change a default | Change where the agent asks vs assumes, or vice versa. |
+| 18 | bold | Rewrite a section | Rewrite one section from scratch. Same intent, better clarity. |
+| 19 | bold | Personality nudge | Small, targeted tone adjustment based on signal patterns. |
+| 20 | freak | Natural 20 — Freak mutation | Go wild. Something unexpected, creative, radical. The human reviews it anyway. |
+
+**Distribution:** 20% simplify, 25% specify, 20% signal-driven, 15% procedural, 10% bold, 5% freak, 5% rest.
+
 ## The simplicity test
 
 Before writing a proposal, ask:
