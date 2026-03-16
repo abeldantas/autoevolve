@@ -69,6 +69,8 @@ Write a brief analysis (3-5 bullet points) to `local/proposed-mutation.md` under
 
 Based on the analysis, propose **one** small change to **one** mutable file.
 
+**Before proposing, read `docs/mutation-strategies.md` for guidance on what kinds of mutations tend to work.** It covers high-value patterns, common pitfalls, and how to map signal patterns to concrete changes.
+
 **Rules:**
 - Only modify files listed in `mutable_files` in config.json.
 - Never modify files listed in `immutable_files`.
