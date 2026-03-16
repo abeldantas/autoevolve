@@ -38,7 +38,7 @@ touch evolution/signals.jsonl
 
 Edit `evolution/config.json` to match this agent:
 
-- `agent_name` — the agent's name (e.g., "iris")
+- `agent_name` — the agent's name (e.g., "my-agent")
 - `mutable_files` — which files the evolution loop can modify
 - `immutable_files` — which files are off-limits
 - `primary_mutation_surface` — the file most mutations should target

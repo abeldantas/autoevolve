@@ -1,0 +1,46 @@
+#!/bin/bash
+# Reject commits that contain sensitive patterns.
+# Catches accidental pushes of agent-specific data to the public framework repo.
+#
+# Install: git config core.hooksPath .githooks
+
+SENSITIVE_PATTERNS=(
+    # Tokens and secrets
+    '[A-Za-z0-9_-]{24}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27}'  # Discord bot token format
+    'sk-[a-zA-Z0-9]{20,}'                                       # API keys
+    # IP addresses (private ranges)
+    '192\.168\.[0-9]+\.[0-9]+'
+    '10\.[0-9]+\.[0-9]+\.[0-9]+'
+    # Paths that suggest agent-specific data
+    'signals\.jsonl'
+    'proposed-mutation\.md'
+    # Common sensitive filenames
+    '\.env'
+    'credentials'
+)
+
+# Only check staged files (what's about to be committed)
+STAGED=$(git diff --cached --name-only --diff-filter=ACM)
+
+if [ -z "$STAGED" ]; then
+    exit 0
+fi
+
+FOUND=0
+for pattern in "${SENSITIVE_PATTERNS[@]}"; do
+    MATCHES=$(echo "$STAGED" | xargs grep -lP "$pattern" 2>/dev/null)
+    if [ -n "$MATCHES" ]; then
+        echo "BLOCKED: Sensitive pattern found: $pattern"
+        echo "  in: $MATCHES"
+        FOUND=1
+    fi
+done
+
+if [ $FOUND -ne 0 ]; then
+    echo ""
+    echo "Commit rejected — this is a public repo. Review the flagged files."
+    echo "To bypass (if you're sure): git commit --no-verify"
+    exit 1
+fi
+
+exit 0
