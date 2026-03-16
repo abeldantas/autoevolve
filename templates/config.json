@@ -1,0 +1,32 @@
+{
+  "agent_name": "AGENT_NAME",
+  "workspace_path": "WORKSPACE_PATH",
+
+  "mutable_files": ["AGENTS.md", "SOUL.md", "HEARTBEAT.md", "TOOLS.md"],
+  "immutable_files": ["IDENTITY.md", "USER.md"],
+  "primary_mutation_surface": "AGENTS.md",
+  "no_evolve_sections": ["Safety", "Security Posture"],
+
+  "eval_window_days": 7,
+  "mutation_size_limit_lines": 20,
+  "drift_threshold_percent": 50,
+
+  "review_mode": "always",
+  "notification": {
+    "method": "discord_dm",
+    "target_user_id": "DISCORD_USER_ID"
+  },
+
+  "bot_token_path": "BOT_TOKEN_PATH",
+  "signals_path": "evolution/signals.jsonl",
+
+  "signal_weights": {
+    "explicit_positive": 5,
+    "explicit_negative": -5,
+    "reaction_positive": 2,
+    "reaction_negative": -3,
+    "task_complete": 3,
+    "correction": -3,
+    "no_reaction": -0.5
+  }
+}
