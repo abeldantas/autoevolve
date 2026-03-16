@@ -1,46 +1,78 @@
 #!/bin/bash
-# Reject commits that contain sensitive patterns.
-# Catches accidental pushes of agent-specific data to the public framework repo.
+# Reject commits that contain sensitive or agent-specific content.
+# Two layers: fast regex scan, then LLM review of the diff.
 #
 # Install: git config core.hooksPath .githooks
+# Bypass:  git commit --no-verify
 
-SENSITIVE_PATTERNS=(
-    # Tokens and secrets
-    '[A-Za-z0-9_-]{24}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27}'  # Discord bot token format
-    'sk-[a-zA-Z0-9]{20,}'                                       # API keys
-    # IP addresses (private ranges)
-    '192\.168\.[0-9]+\.[0-9]+'
-    '10\.[0-9]+\.[0-9]+\.[0-9]+'
-    # Paths that suggest agent-specific data
-    'signals\.jsonl'
-    'proposed-mutation\.md'
-    # Common sensitive filenames
-    '\.env'
-    'credentials'
-)
+set -euo pipefail
 
-# Only check staged files (what's about to be committed)
 STAGED=$(git diff --cached --name-only --diff-filter=ACM)
-
 if [ -z "$STAGED" ]; then
     exit 0
 fi
 
-FOUND=0
-for pattern in "${SENSITIVE_PATTERNS[@]}"; do
-    MATCHES=$(echo "$STAGED" | xargs grep -lP "$pattern" 2>/dev/null)
-    if [ -n "$MATCHES" ]; then
-        echo "BLOCKED: Sensitive pattern found: $pattern"
-        echo "  in: $MATCHES"
-        FOUND=1
+DIFF=$(git diff --cached)
+
+# --- Layer 1: Fast regex scan ---
+
+PATTERNS=(
+    '[A-Za-z0-9_-]{24}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27}'  # Discord bot tokens
+    'sk-[a-zA-Z0-9]{20,}'                                       # API keys
+    '192\.168\.[0-9]+\.[0-9]+'                                   # Private IPs
+    '10\.[0-9]+\.[0-9]+\.[0-9]+'                                 # Private IPs
+)
+
+for pattern in "${PATTERNS[@]}"; do
+    if echo "$DIFF" | grep -qP "$pattern" 2>/dev/null; then
+        echo "BLOCKED (regex): Pattern matched: $pattern"
+        echo "Review your staged changes. Bypass with: git commit --no-verify"
+        exit 1
     fi
 done
 
-if [ $FOUND -ne 0 ]; then
+# --- Layer 2: LLM review ---
+
+if ! command -v claude &> /dev/null; then
+    echo "Warning: claude CLI not found, skipping LLM review"
+    exit 0
+fi
+
+echo "Running LLM review on staged diff..."
+
+VERDICT=$(echo "$DIFF" | claude -p \
+    "You are a pre-commit hook for a PUBLIC open-source repo called autoevolve.
+
+This repo is a GENERIC FRAMEWORK. It must contain NO agent-specific data:
+- No real names, usernames, or Discord IDs
+- No real IP addresses, hostnames, or server details
+- No tokens, passwords, or credentials
+- No references to specific agents by name (unless clearly used as a placeholder example)
+- No personal data, org names, or project names from any specific user
+- No runtime data like signals, experiment results, or mutation proposals
+
+Placeholders like AGENT_NAME, BOT_TOKEN_PATH, DISCORD_USER_ID are fine.
+Generic examples like 'my-agent' are fine.
+The repo owner's GitHub username in clone URLs is fine.
+
+Review this git diff. Reply with ONLY one of:
+PASS - if the diff is clean
+FAIL: <reason> - if it contains agent-specific or sensitive content" 2>/dev/null)
+
+if echo "$VERDICT" | grep -q "^FAIL"; then
     echo ""
-    echo "Commit rejected — this is a public repo. Review the flagged files."
-    echo "To bypass (if you're sure): git commit --no-verify"
+    echo "BLOCKED (LLM review): $VERDICT"
+    echo ""
+    echo "Bypass with: git commit --no-verify"
     exit 1
 fi
 
+if echo "$VERDICT" | grep -q "^PASS"; then
+    echo "LLM review: PASS"
+    exit 0
+fi
+
+# If LLM returned something unexpected, warn but don't block
+echo "Warning: LLM review returned unexpected output: $VERDICT"
+echo "Proceeding anyway."
 exit 0
