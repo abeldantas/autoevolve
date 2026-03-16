@@ -69,8 +69,8 @@ date	commit	file	type	description	pre_score	post_score	status
 
 ## What happens when there's not enough data
 
-If `signals.jsonl` has fewer than 10 signals in the evaluation window, the evolution loop should:
-1. Note this in the proposal ("insufficient signal density")
+If signal density is low (single digits in the evaluation window), the evolution loop should:
+1. Note "low signal density" in the proposal with a confidence flag
 2. Still propose a mutation if the existing signals show a clear pattern
 3. Skip proposing if there's genuinely nothing to go on
-4. Never revert based on insufficient data — leave the last mutation as `neutral`
+4. If reverting a mutation, note the low confidence — the human can override

@@ -37,7 +37,7 @@ Filter `signals.jsonl` to entries within the last `eval_window_days` (from confi
 
 Signals with types not listed above (or with no matching weight key) should be skipped with a note in the analysis.
 
-**Minimum signal density:** Count the number of signals in the evaluation window. If there are fewer than `min_signal_count` (from config, default 10), flag this as "insufficient signal density" in your analysis. You may still compute a score, but the score is unreliable — treat it accordingly in step 2.
+**Signal density note:** Count the number of signals in the evaluation window. If the count is low (single digits), note "low signal density" in your analysis and flag the confidence level. The score is still valid but noisier — factor this into your decisions in steps 2 and 4.
 
 ### 2. Evaluate Last Mutation
 
@@ -47,9 +47,8 @@ Check `experiments.tsv` for the most recent entry with status `pending`.
 - If pending:
   - The `pre_score` was recorded when the mutation was applied.
   - The current window score is the `post_score`.
-  - **If signal density is insufficient (< `min_signal_count` signals):** mark status as `neutral` regardless of score delta. Do NOT revert based on sparse data — the score is too noisy to trust. Note "insufficient signal density" in the experiment log description.
   - **If post_score > pre_score**: mark status as `keep`. The mutation helped.
-  - **If post_score < pre_score by more than 10%**: mark status as `revert`. Run `git revert <commit>` to undo.
+  - **If post_score < pre_score by more than 10%**: mark status as `revert`. Run `git revert <commit>` to undo. If signal density is low, note this in the log — the revert is less certain.
   - **If roughly equal (within 10%)**: mark status as `neutral`. Keep the change (bias toward simplification).
   - Update the row in `experiments.tsv` with the post_score and new status.
 
