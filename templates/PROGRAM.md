@@ -165,19 +165,31 @@ curl -s -H "Authorization: Bot $TOKEN" -H "Content-Type: application/json" \
 
 Then stop. The mutation will be applied in the next cycle after approval, or by a follow-up invocation.
 
-### 8. Apply (if approved)
+### 8. Apply or Discard
 
-If running in a follow-up invocation after approval (or if `review_mode` allows auto-apply):
+Check whether the human approved or rejected the proposal from step 7.
 
-1. Create branch: `git checkout -b evolve/<agent_name>/<date>-<short-description>`
-2. Apply the change to the target file
-3. `git add <file> && git commit -m "evolve: <description>"`
-4. `git checkout main && git merge evolve/<agent_name>/<date>-<short-description>`
-5. `git push origin main`
-6. Record in `experiments.tsv`:
-   ```
-   <date>\t<commit>\t<file>\t<type>\t<description>\t<current_score>\t-\tpending
-   ```
+- **Approved** (thumbsup reaction on the Discord DM, or explicit approval):
+  1. Create branch: `git checkout -b evolve/<agent_name>/<date>-<short-description>`
+  2. Apply the change to the target file
+  3. `git add <file> && git commit -m "evolve: <description>"`
+  4. `git checkout main && git merge evolve/<agent_name>/<date>-<short-description>`
+  5. `git push origin main`
+  6. Record in `experiments.tsv`:
+     ```
+     <date>\t<commit>\t<file>\t<type>\t<description>\t<current_score>\t-\tpending
+     ```
+
+- **Rejected** (thumbsdown reaction, explicit rejection, or no response after a reasonable period):
+  1. Record in `experiments.tsv` with status `rejected` and no commit hash:
+     ```
+     <date>\t-\t<file>\t<type>\t<description>\t<current_score>\t-\trejected
+     ```
+  2. Delete `local/proposed-mutation.md` (clean up for the next cycle).
+  3. Do NOT apply the change. Do NOT create a branch or commit.
+  4. The next cycle starts fresh — it may re-propose a similar mutation if the signals still support it, or propose something different.
+
+**Why log rejections?** The experiment history should capture every proposal, not just the ones that were applied. A pattern of rejections around a particular file or mutation type is itself a signal — it tells future cycles what the human considers out of bounds.
 
 ## Important Notes
 

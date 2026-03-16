@@ -5,10 +5,10 @@ The evolution loop runs one cycle per invocation. It is invoked as a Claude Code
 ## Lifecycle of a mutation
 
 ```
-Signal collection (continuous, 7 days)
+Signal collection (continuous)
         |
         v
-Evolution cycle (weekly invocation)
+Evolution cycle (invocation)
   1. Compute fitness score
   2. Evaluate last mutation (keep/revert/neutral)
   3. Analyze signal patterns
@@ -19,15 +19,17 @@ Evolution cycle (weekly invocation)
 Human reviews (Discord DM)
   - Approve (thumbsup) or reject (thumbsdown)
         |
-        v
-Apply mutation (next invocation or follow-up)
-  1. Create branch
-  2. Apply change
-  3. Commit, merge, push
-  4. Log to experiments.tsv (status: pending)
+        +--- Approved:
+        |      1. Create branch
+        |      2. Apply change
+        |      3. Commit, merge, push
+        |      4. Log to experiments.tsv (status: pending)
+        |      5. Next cycle evaluates the result...
         |
-        v
-Next cycle evaluates the result...
+        +--- Rejected:
+               1. Log to experiments.tsv (status: rejected, no commit)
+               2. Delete proposed-mutation.md
+               3. Next cycle starts fresh
 ```
 
 ## Evaluation rules
