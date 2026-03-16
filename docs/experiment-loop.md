@@ -36,7 +36,7 @@ Human reviews (Discord DM)
 
 ## Evaluation rules
 
-When evaluating a pending mutation, compute `delta = post_score - pre_score` and `threshold = max(abs(pre_score) * 0.10, 2)`:
+Scores are **per-signal weighted averages** (not raw sums), so they are comparable across windows of different signal density. When evaluating a pending mutation, compute `delta = post_score - pre_score` and `threshold = max(abs(pre_score) * revert_threshold_pct/100, revert_threshold_floor)`:
 
 | Condition | Decision | Action |
 |---|---|---|
@@ -44,7 +44,7 @@ When evaluating a pending mutation, compute `delta = post_score - pre_score` and
 | delta < -threshold | `revert` | `git revert <commit>`, undo |
 | -threshold <= delta <= 0 | `neutral` | Keep the change (bias toward simplicity) |
 
-The threshold uses 10% of the absolute pre_score with a floor of 2 points. The floor prevents spurious reverts when pre_score is near zero or negative — without it, a pre_score of 0 would make any drop trigger a revert, and a pre_score of 3 would revert on a 0.3-point fluctuation. Signals are noisy; small score movements should not drive revert decisions.
+The threshold uses `revert_threshold_pct`% (default 10%) of the absolute pre_score with a floor of `revert_threshold_floor` (default 0.5). Since scores are normalized averages (typically ranging from about -5 to +5), the floor of 0.5 prevents reverts on noise while still catching meaningful regressions. Signals are noisy; small score movements should not drive revert decisions.
 
 ## Experiment log format
 

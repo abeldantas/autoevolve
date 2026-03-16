@@ -30,7 +30,8 @@ autoevolve takes this loop and applies it to **agent behavior files** instead of
 **Fitness is noisy.** A training loss is deterministic — same code, same data, same number. Human reactions are context-dependent, mood-dependent, and sparse. This means:
 - We need longer evaluation windows (days vs 5 minutes; default 3 days)
 - We can't make binary keep/discard decisions on single data points
-- We use a threshold for revert decisions: 10% of the absolute pre_score with a minimum floor of 2 points, so near-zero scores don't cause spurious reverts
+- Scores are **per-signal weighted averages** (not raw sums), so windows with different signal volumes are still comparable — a quiet week and a busy week produce scores on the same scale
+- We use a threshold for revert decisions: 10% of the absolute pre_score with a minimum floor of 0.5, so near-zero scores don't cause spurious reverts
 
 **Safety is higher stakes.** A bad ML experiment produces a bad model that gets discarded. A bad personality mutation can make the agent annoying, tone-deaf, or untrustworthy. Rebuilding trust is harder than retraining a model. This means:
 - Human always reviews mutations before they're applied

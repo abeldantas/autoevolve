@@ -73,23 +73,31 @@ Configurable in `config.json`. Defaults:
 
 ## Scoring
 
-The evolution loop computes a score over the evaluation window (default 3 days, configurable via `eval_window_days` in config). Each signal is mapped to a weight key from `signal_weights` in config:
+The evolution loop computes a **normalized score** (per-signal weighted average) over the evaluation window (default 3 days, configurable via `eval_window_days` in config). Each signal is mapped to a weight key from `signal_weights` in config, then the total is divided by the number of scored signals:
 
 ```
+weighted_sum = 0
+scored_count = 0
+
 For each signal in window:
-  if type == "explicit_positive":       score += weights["explicit_positive"]
-  if type == "explicit_negative":       score += weights["explicit_negative"]
-  if type == "correction":              score += weights["correction"]
+  if type == "explicit_positive":       weighted_sum += weights["explicit_positive"];  scored_count += 1
+  if type == "explicit_negative":       weighted_sum += weights["explicit_negative"];  scored_count += 1
+  if type == "correction":              weighted_sum += weights["correction"];         scored_count += 1
   if type == "task_complete":
-    if corrections == 0:                score += weights["task_complete"]
-    else:                               score += weights["correction"]
+    if corrections == 0:                weighted_sum += weights["task_complete"];      scored_count += 1
+    else:                               weighted_sum += weights["correction"];         scored_count += 1
   if type == "reaction_add":
-    if classification == "positive":    score += weights["reaction_positive"]
-    if classification == "negative":    score += weights["reaction_negative"]
+    if classification == "positive":    weighted_sum += weights["reaction_positive"];  scored_count += 1
+    if classification == "negative":    weighted_sum += weights["reaction_negative"];  scored_count += 1
   if type == "reaction_remove":
-    if classification == "positive":    score -= weights["reaction_positive"]
-    if classification == "negative":    score -= weights["reaction_negative"]
+    if classification == "positive":    weighted_sum -= weights["reaction_positive"];  scored_count += 1
+    if classification == "negative":    weighted_sum -= weights["reaction_negative"];  scored_count += 1
+  else (unknown type):                  skip — do not count
+
+score = weighted_sum / scored_count   (if scored_count > 0, else 0)
 ```
+
+**Why average, not sum:** A raw sum makes scores dependent on signal volume. A busy window with 30 signals would always outscore a quiet one with 5, even if agent quality was identical. Since mutations are evaluated by comparing pre_score vs post_score, scores must be comparable across windows of different density. The per-signal weighted average normalizes for this.
 
 **Note:** The reaction listener emits `reaction_add`/`reaction_remove` with a `classification` field. These must be mapped to the `reaction_positive`/`reaction_negative` weight keys using the classification. A `reaction_remove` inverts the sign (undoing the original add).
 

@@ -27,7 +27,9 @@ Run one cycle per invocation. Do NOT loop or repeat — one cycle, then stop.
 
 ### 1. Compute Current Fitness Score
 
-Filter `signals.jsonl` to entries within the last `eval_window_days` (from config). For each signal, map it to a weight key from `signal_weights` in config using the rules below, then sum all weighted values to get the **current window score**.
+Filter `signals.jsonl` to entries within the last `eval_window_days` (from config). For each signal, map it to a weight key from `signal_weights` in config using the rules below, then compute the **current window score** as the **weighted average** (sum of weighted values / number of scored signals).
+
+**Why average, not sum:** A raw sum makes scores dependent on signal volume — a busy 3-day window with 30 signals will always outscore a quiet one with 5. Since mutations are evaluated by comparing pre_score vs post_score across different windows, the scores must be comparable regardless of how many signals happened to arrive. The per-signal weighted average normalizes for density, so a window where the agent performed well on 5 interactions scores the same as one where it performed equally well on 30.
 
 **Mapping rules (signal → weight key):**
 
@@ -45,9 +47,25 @@ Filter `signals.jsonl` to entries within the last `eval_window_days` (from confi
 
 **Important:** The reaction listener writes `type: "reaction_add"` or `"reaction_remove"` with a `classification` field. You must use the classification to look up the correct weight. A `reaction_remove` inverts the sign — if someone removes a thumbsup, subtract the `reaction_positive` weight (i.e., apply `-reaction_positive`).
 
-Signals with types not listed above (or with no matching weight key) should be skipped with a note in the analysis.
+Signals with types not listed above (or with no matching weight key) should be skipped — do not count them toward the signal total used in the denominator.
 
-**Signal density note:** Count the number of signals in the evaluation window. If the count is low (single digits), note "low signal density" in your analysis and flag the confidence level. The score is still valid but noisier — factor this into your decisions in steps 2 and 5.
+**Computing the score:**
+```
+weighted_sum = 0
+scored_count = 0
+
+For each signal in window:
+  weight = look up weight from mapping table above
+  if no mapping exists: skip (do not increment scored_count)
+  weighted_sum += weight
+  scored_count += 1
+
+score = weighted_sum / scored_count   (if scored_count > 0, else 0)
+```
+
+Report both `score` (the average) and `scored_count` in your analysis. The score is what gets recorded in experiments.tsv and used for keep/revert decisions.
+
+**Signal density note:** If `scored_count` is low (single digits), note "low signal density" in your analysis and flag the confidence level. The normalized score is still valid but noisier with fewer data points — factor this into your decisions in steps 2 and 5.
 
 ### 2. Evaluate Last Mutation
 
@@ -58,7 +76,7 @@ Check `experiments.tsv` for the most recent entry with status `pending`.
   - The `pre_score` was recorded when the mutation was applied.
   - The current window score is the `post_score`.
   - Compute `delta = post_score - pre_score`.
-  - Compute the revert threshold: `threshold = max(abs(pre_score) * revert_threshold_pct/100, revert_threshold_floor)` (from config; defaults: 10%, floor 2). This ensures a meaningful minimum — when pre_score is near zero, the percentage rule alone would revert on trivial noise.
+  - Compute the revert threshold: `threshold = max(abs(pre_score) * revert_threshold_pct/100, revert_threshold_floor)` (from config; defaults: 10%, floor 0.5). This ensures a meaningful minimum — when pre_score is near zero, the percentage rule alone would revert on trivial noise. The floor of 0.5 is calibrated for normalized scores (per-signal averages typically range from -5 to +5).
   - **If delta > 0**: mark status as `keep`. The mutation helped.
   - **If delta < -threshold** (score dropped by more than the threshold): mark status as `revert`. Run `git revert <commit>` to undo. If signal density is low, note this in the log — the revert is less certain.
   - **If -threshold <= delta <= 0** (small or no drop): mark status as `neutral`. Keep the change (bias toward simplification).
