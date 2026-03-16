@@ -7,7 +7,7 @@
   "primary_mutation_surface": "AGENTS.md",
   "no_evolve_sections": ["Safety", "Security Posture"],
 
-  "eval_window_days": 7,
+  "eval_window_days": 3,
   "revert_threshold_pct": 10,
   "revert_threshold_floor": 2,
   "mutation_size_limit_lines": 20,
