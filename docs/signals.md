@@ -109,8 +109,14 @@ The reaction listener classifies Discord emoji as positive or negative:
 
 **Positive:** thumbsup, heart, clap, fire, 100, star, tada, rocket, raised_hands, ok_hand, muscle, sparkles, pray, trophy, medal, crown, brain, sunglasses, chef, goat
 
-**Negative:** thumbsdown, x, no_entry, skull (context-dependent — could be "I'm dying laughing")
+**Negative:** thumbsdown, x, no_entry
 
 **Neutral (ignored):** eyes, thinking, question, shrug
 
 This list is configurable in the reaction listener.
+
+## Reaction dedup
+
+The listener enforces **one scored signal per user per message**. If a user adds multiple classified reactions to the same bot message (e.g., thumbsup, fire, and 100), only the first one generates a signal. Subsequent reactions from the same user on the same message are silently ignored.
+
+This prevents a single user from inflating (or deflating) the fitness score by spam-reacting with many emoji. A `reaction_remove` only emits an undo signal if the removed emoji matches the one that was originally scored for that user+message pair.

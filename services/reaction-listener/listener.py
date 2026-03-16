@@ -107,6 +107,12 @@ class ReactionListener(discord.Client):
         super().__init__(intents=intents, **kwargs)
         self.signals_path = signals_path
         self.bot_user_id = None
+        # Dedup: one scored signal per (user, message) pair.
+        # Without this a single user can add 10 different positive emoji to one
+        # message and generate 10 positive signals, gaming the score.
+        # Keys are (user_id, message_id); values are the classification that
+        # was recorded so we can emit the correct undo on reaction_remove.
+        self._scored: dict[tuple[int, int], str] = {}
 
     async def on_ready(self):
         self.bot_user_id = self.user.id
@@ -151,6 +157,44 @@ class ReactionListener(discord.Client):
         if classification is None:
             log.debug(f"Ignoring neutral emoji: {emoji_str}")
             return
+
+        # --- Dedup: one scored signal per (user, message) pair ---
+        # A user can add many different emoji to the same message. Without
+        # dedup each one generates a separate signal, letting a single user
+        # inflate (or deflate) the score arbitrarily.  We record only the
+        # FIRST classified reaction per (user, message).  On reaction_remove
+        # we only emit the undo if that pair was previously scored.
+        key = (payload.user_id, payload.message_id)
+
+        if event_type == "reaction_add":
+            if key in self._scored:
+                log.debug(
+                    f"Dedup: ignoring extra reaction from user {payload.user_id} "
+                    f"on message {payload.message_id} (already scored as "
+                    f"{self._scored[key]})"
+                )
+                return
+            self._scored[key] = classification
+        elif event_type == "reaction_remove":
+            prev = self._scored.get(key)
+            if prev is None:
+                # This remove doesn't correspond to a scored add — skip.
+                log.debug(
+                    f"Dedup: ignoring reaction_remove from user {payload.user_id} "
+                    f"on message {payload.message_id} (no scored add to undo)"
+                )
+                return
+            # Only emit the undo if we're removing the emoji whose
+            # classification matches what we originally scored.  If the user
+            # added thumbsup (scored positive) then also added fire, removing
+            # fire should NOT undo the positive score.
+            if classification != prev:
+                log.debug(
+                    f"Dedup: ignoring reaction_remove ({classification}) — "
+                    f"scored reaction was {prev}"
+                )
+                return
+            del self._scored[key]
 
         signal = {
             "ts": datetime.now(timezone.utc).isoformat(),

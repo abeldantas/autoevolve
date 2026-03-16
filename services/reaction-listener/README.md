@@ -9,6 +9,7 @@ A background service that monitors Discord for reactions on the agent's messages
 - Filters to reactions on the bot's own messages only (ignores reactions on other users' messages)
 - Ignores the bot's own reactions
 - Classifies emoji as positive, negative, or neutral
+- Deduplicates: one scored signal per user per message (prevents spam-react gaming)
 - Appends positive/negative signals to `signals.jsonl`
 - Works across ALL channels: DMs, server channels, threads
 
