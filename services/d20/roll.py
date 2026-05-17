@@ -16,11 +16,11 @@ import random
 import sys
 
 MUTATION_TABLE = {
-    # 1: Critical fail — skip this cycle
+    # 1: Audit instead of mutate — productive self-examination
     1: {
-        "category": "skip",
-        "name": "Natural 1 — Rest cycle",
-        "description": "Skip this cycle entirely. No mutation proposed. Sometimes the best change is no change.",
+        "category": "review",
+        "name": "Natural 1 — Audit the last mutation",
+        "description": "Do NOT propose a new mutation this cycle. Instead: find the most recent applied mutation in evolution-log.md, read its patch, read signals collected since it was applied, and append a one-line verdict to evolution-log.md (still working / reverted / no measurable effect / caused regression — recommend revert). THIS is your contribution this cycle — a verdict line, not a new patch. Knowing what worked matters more than mutating blindly.",
     },
     # 2-5: Simplification (remove/consolidate)
     2: {

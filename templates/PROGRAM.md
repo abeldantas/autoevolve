@@ -35,19 +35,29 @@ Filter `signals.jsonl` to entries within the last `eval_window_days` (from confi
 
 | Signal `type` | Signal `source` | Extra fields | Weight key used |
 |---|---|---|---|
-| `explicit_positive` | self | — | `explicit_positive` |
-| `explicit_negative` | self | — | `explicit_negative` |
-| `correction` | self | — | `correction` |
-| `task_complete` | self | `corrections` = 0 | `task_complete` |
-| `task_complete` | self | `corrections` > 0 | `correction` (penalize instead of reward) |
+| `explicit_positive` | self / bridge | — | `explicit_positive` |
+| `explicit_negative` | self / bridge | — | `explicit_negative` |
+| `correction` | self / bridge | — | `correction` |
+| `task_complete` | self / bridge | `corrections` = 0 | `task_complete` |
+| `task_complete` | self / bridge | `corrections` > 0 | `correction` (penalize instead of reward) |
 | `reaction_add` | discord | `classification` = "positive" | `reaction_positive` |
 | `reaction_add` | discord | `classification` = "negative" | `reaction_negative` |
 | `reaction_remove` | discord | `classification` = "positive" | Subtract `reaction_positive` (undo the add) |
 | `reaction_remove` | discord | `classification` = "negative" | Subtract `reaction_negative` (undo the add) |
+| `no_reaction` | bridge | — | `no_reaction` |
+| `owner_engaged` | bridge | — | `owner_engaged` |
+| `task_delegation` | bridge | — | `task_delegation` |
+| `implicit_positive` | bridge | — | `implicit_positive` |
+| `implicit_negative` | bridge | — | `implicit_negative` |
+| `re_explanation` | bridge | — | `re_explanation` |
+| `deep_engagement` | bridge/sleep | — | `deep_engagement` |
+| `subtle_correction` | sleep_review | — | `subtle_correction` |
+| `topic_dismissed` | sleep_review | — | `topic_dismissed` |
+| `no_engagement` | bridge | — | `no_engagement` |
 
 **Important:** The reaction listener writes `type: "reaction_add"` or `"reaction_remove"` with a `classification` field. You must use the classification to look up the correct weight. A `reaction_remove` inverts the sign — if someone removes a thumbsup, subtract the `reaction_positive` weight (i.e., apply `-reaction_positive`).
 
-Signals with types not listed above (or with no matching weight key) should be skipped — do not count them toward the signal total used in the denominator.
+Signals with types not listed above (or with no matching weight key in config.json) should be skipped — do not count them toward the signal total used in the denominator.
 
 **Computing the score:**
 ```
@@ -90,7 +100,7 @@ Look at the signals from the current window and identify patterns:
 - **Positive clusters** — what's earning praise or reactions?
 - **Unaddressed feedback** — is there feedback that suggests a behavior change not yet captured in the agent's files?
 - **Simplification opportunities** — are there instructions the agent ignores or that seem redundant?
-- **Signal source balance** — check that both self-reported signals (explicit_positive, correction, task_complete) and reaction signals (from Discord) are present in the window. If reaction signals exist but there are zero self-reported signals, the agent is likely not following its signal logging instructions — flag this prominently in the analysis and skip proposing a mutation (the signal data is incomplete and any score is unreliable).
+- **Signal source balance** — check that scored signals include a mix of positive and negative types (not all one-sided). If the window has only no_reaction signals and nothing else, the bridge may not be detecting feedback patterns correctly — flag this prominently in the analysis and skip proposing a mutation (the signal data is incomplete and any score is unreliable).
 
 Write a brief analysis (3-5 bullet points) to `local/proposed-mutation.md` under a `## Signal Analysis` heading.
 
@@ -189,9 +199,24 @@ If no snapshot exists yet, create one now:
 cp <mutable_file> local/snapshots/<mutable_file>
 ```
 
-### 8. Notify Human
+### 8. Notify Human (or auto-apply if low_risk_auto)
 
-If `review_mode` is `always` (or the file requires review):
+**If `review_mode` is `low_risk_auto`**, check whether the proposed mutation is low-risk:
+- Estimate lines changed (additions + deletions in the proposed patch).
+- Confirm it does not touch `immutable_files` from config.
+- Confirm it does not edit a line inside any `no_evolve_sections` (anchored by section heading; the mutation must be entirely outside those sections).
+- Confirm it is not in `low_risk_criteria.forbidden_files` from config.
+
+If ALL of:
+  - lines changed ≤ `low_risk_criteria.max_lines_changed` (default 10),
+  - respects no_evolve_sections,
+  - not in forbidden_files,
+
+then **auto-apply** — skip to step 9 as if the human had approved. Post a one-line confirmation to the notification channel ("✓ auto-applied: <file> — <description>") so the human sees what changed, but do not wait for approval.
+
+Otherwise (mutation is too large, or touches protected surfaces), fall through to the standard review flow below.
+
+**If `review_mode` is `always` (or the mutation is not low_risk in `low_risk_auto` mode):**
 
 Post the proposal summary to the configured notification channel. For Discord DM, build the JSON payload in a temporary file to avoid shell escaping issues:
 
