@@ -10,6 +10,8 @@ Before running, read:
 3. `local/experiments.tsv` — experiment history
 4. `local/signals.jsonl` — raw feedback signals
 5. The agent's current mutable files (see path resolution below)
+6. **`<workspace>/memory/state/patterns.json`** (if it exists) — Abel's observed rhythms with this agent (activity histograms, latency, voice-note rate, message-length distribution, inferred quiet hours). Use these to ground mutations in real engagement data instead of guessing. If `data_sufficient: false`, fall back to signal-only analysis.
+7. **`<workspace>/data/nutrition-patterns.json`** (Kai only, if exists) — meal-time medians and recency-weighted food rankings. Inform mutations that touch nutrition prompts.
 
 ### Path resolution
 
