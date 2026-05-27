@@ -69,21 +69,34 @@ _NEGATIVE_RAW = {
     "thumbsdown", "x", "no_entry",
 }
 
+# 🤫 = "shouldn't have surfaced" — presence-noise complaint, not content
+_HUSH_RAW = {
+    "🤫",
+    "shushing_face",
+}
+
 # Normalized sets used for actual lookups
 POSITIVE_EMOJI = _build_emoji_set(_POSITIVE_RAW)
 NEGATIVE_EMOJI = _build_emoji_set(_NEGATIVE_RAW)
+HUSH_EMOJI = _build_emoji_set(_HUSH_RAW)
 
 # Neutral emoji are ignored (eyes, thinking, question, shrug, etc.)
 
 
 def classify_emoji(emoji_str: str) -> str | None:
-    """Classify an emoji as positive, negative, or None (neutral/ignored).
+    """Classify an emoji as positive, negative, presence_negative, or None.
+
+    - positive / negative: about message CONTENT (agree/disagree, like/dislike)
+    - presence_negative (🤫): about message PRESENCE — "shouldn't have surfaced"
+    - None: neutral / ignored (eyes, thinking, question, shrug, etc.)
 
     Handles skin-tone variants (👍🏽 -> 👍) and Discord's text-name format
     (:thumbsup: -> thumbsup) transparently.
     """
     normalized = _strip_emoji_modifiers(emoji_str)
     name = normalized.strip().lower().replace(":", "")
+    if name in HUSH_EMOJI or normalized in HUSH_EMOJI:
+        return "presence_negative"
     if name in POSITIVE_EMOJI or normalized in POSITIVE_EMOJI:
         return "positive"
     if name in NEGATIVE_EMOJI or normalized in NEGATIVE_EMOJI:
